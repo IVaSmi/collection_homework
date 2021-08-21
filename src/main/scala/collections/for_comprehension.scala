@@ -5,14 +5,24 @@ package collections
  */
 
 trait Wrap[+A] {
-  def pure[R](x: R): Wrap[R] = ???
 
-  def flatMap[R](f: A => Wrap[R]): Wrap[R] = ???
+  def get: A
+
+  def pure[R](x: R): Wrap[R] = NonEmptyWrap(x)
+
+  def flatMap[R](f: A => Wrap[R]): Wrap[R] = {
+    if(this eq EmptyWrap) EmptyWrap
+    else f(this.get)
+  }
 
   // HINT: map можно реализовать через pure и flatMap
-  def map[R](f: A => R): Wrap[R] = ???
+  def map[R](f: A => R): Wrap[R] = {
+    this.flatMap(x => pure(f(x)))
+  }
 
-  def withFilter(f: A => Boolean): Wrap[A] = ???
+  def withFilter(f: A => Boolean): Wrap[A] = {
+    if((this eq EmptyWrap) || f(this.get)) this else EmptyWrap
+  }
 
 }
 
@@ -20,9 +30,13 @@ object Wrap {
   def empty[R]: Wrap[R] = EmptyWrap
 }
 
-case class NonEmptyWrap[A](result: A) extends Wrap[A] // pure
+case class NonEmptyWrap[A](result: A) extends Wrap[A] {
+  override def get: A = result
+} // pure
 
-object EmptyWrap extends Wrap[Nothing] // bottom, null element
+object EmptyWrap extends Wrap[Nothing] {
+  override def get: Nothing = throw new NoSuchElementException("Wrap.get")
+} // bottom, null element
 
 
 object for_comprehension {
@@ -34,73 +48,77 @@ object for_comprehension {
   def main(args: Array[String]): Unit = {
     val result: Wrap[Int] = NonEmptyWrap(10)
 
-    for {
+    val r1 = for {
       res <- result
-    } yield println(res)
+    } yield res
 
     val anotherResult: Wrap[Int] = NonEmptyWrap(100)
 
-    for {
+    val r2 = for {
       res <- result
       another <- anotherResult
     } yield res + another
 
 
-    for {
+    val r3 = for {
       res <- result
       another <- anotherResult
       if res > 10
     } yield res + another
-  }
-
-}
 
 
-object monad_law {
-  //Monad law:
+    println(r1)
+    println(r2)
+    println(r3)
 
-  def decrementF(x: Int): Wrap[Int] = NonEmptyWrap(x - 1)
-  def doubleIncrementF(x: Int): Wrap[Int] = NonEmptyWrap(x + 2)
 
-  /**
-   * Left unit law:
-   * (unit(x) flatMap f) == f(x)
-   * */
-  def leftUnitLaw(): Unit = {
-    assert(NonEmptyWrap(1).flatMap(decrementF) == decrementF(1))
-    println("leftUnitLaw check success")
-  }
+    //Monad law
 
-  leftUnitLaw()
 
-  /**
-   * Right unit law:
-   * (monad flatMap unit) == monad
-   * */
-  def rightUnitLaw(): Unit = {
-    val monad: Wrap[Int] = NonEmptyWrap(10)
-    assert(monad.flatMap(NonEmptyWrap(_)) == monad)
-    println("rightUnitLaw check success")
-  }
+    def decrementF(x: Int): Wrap[Int] = NonEmptyWrap(x - 1)
 
-  rightUnitLaw()
+    def doubleIncrementF(x: Int): Wrap[Int] = NonEmptyWrap(x + 2)
 
-  /**
-   * Associativity law:
-   * ((monad flatMap f) flatMap g) == (monad flatMap (x => f(x) flatMap g))
-   * */
-  def associativityLaw(): Unit = {
-    val monad: Wrap[Int] = NonEmptyWrap(2)
-    val left = monad.flatMap(decrementF).flatMap(doubleIncrementF)
-    val right = monad.flatMap(x => decrementF(x).flatMap(doubleIncrementF))
-    assert(left == right)
-    println("associativityLaw check success")
-  }
+    /**
+     * Left unit law:
+     * (unit(x) flatMap f) == f(x)
+     * */
+    def leftUnitLaw(): Unit = {
+      assert(NonEmptyWrap(1).flatMap(decrementF) == decrementF(1))
+      println("leftUnitLaw check success")
+    }
 
-  def main(args: Array[String]): Unit = {
     leftUnitLaw()
+
+    /**
+     * Right unit law:
+     * (monad flatMap unit) == monad
+     * */
+    def rightUnitLaw(): Unit = {
+      val monad: Wrap[Int] = NonEmptyWrap(10)
+      assert(monad.flatMap(NonEmptyWrap(_)) == monad)
+      println("rightUnitLaw check success")
+    }
+
     rightUnitLaw()
-    associativityLaw()
+
+    /**
+     * Associativity law:
+     * ((monad flatMap f) flatMap g) == (monad flatMap (x => f(x) flatMap g))
+     * */
+    def associativityLaw(): Unit = {
+      val monad: Wrap[Int] = NonEmptyWrap(2)
+      val left = monad.flatMap(decrementF).flatMap(doubleIncrementF)
+      val right = monad.flatMap(x => decrementF(x).flatMap(doubleIncrementF))
+      assert(left == right)
+      println("associativityLaw check success")
+    }
+
+
+      leftUnitLaw()
+      rightUnitLaw()
+      associativityLaw()
+
   }
 
 }
