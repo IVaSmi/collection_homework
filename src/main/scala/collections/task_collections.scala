@@ -1,5 +1,6 @@
 package collections
 
+
 object task_collections {
 
   def isASCIIString(str: String): Boolean = str.matches("[A-Za-z]+")
