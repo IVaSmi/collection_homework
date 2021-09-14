@@ -17,10 +17,10 @@ object task_collections {
     * **/
 
   def capitalizeIgnoringASCII(text: List[String]): List[String] = {
-    text.zipWithIndex
+    text.tail
       .collect {
-        case (x, i) if isASCIIString(x) && i > 0 => x.toUpperCase
-        case (x, i) if i > 0                          => x.toLowerCase
+        case x if isASCIIString(x) => x.toUpperCase
+        case x                     => x.toLowerCase
       }
       .prepended(text.head)
   }
