@@ -30,18 +30,8 @@ package object monad {
       }
 
     def withFilter(f: A => Boolean): Wrap[A] = {
-      val value = this.get
-      class NonEmptyWrapWithFilter(p: A => Boolean)
-          extends NonEmptyWrap[A](value) {
-        override def map[B](f: A => B): Wrap[B] = self filter p map f
-        override def flatMap[B](f: A => Wrap[B]): Wrap[B] =
-          self filter p flatMap f
-        override def withFilter(q: A => Boolean): NonEmptyWrapWithFilter =
-          new NonEmptyWrapWithFilter(x => p(x) && q(x))
-      }
-      new NonEmptyWrapWithFilter(f)
-    }
-
+      if (f(this.get)) this
+      else EmptyWrap
   }
 
   object Wrap {
